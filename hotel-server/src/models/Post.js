@@ -48,6 +48,14 @@ const postSchema = new mongoose.Schema({
     type: String,
     default: 'Admin'
   },
+  authorAvatar: {
+    type: String,
+    default: function() {
+      const authorName = this.author || 'Admin';
+      const encoded = encodeURIComponent(authorName);
+      return `https://ui-avatars.com/api/?name=${encoded}&background=random&rounded=true`;
+    }
+  },
   tags: [{
     type: String,
     trim: true

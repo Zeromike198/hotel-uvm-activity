@@ -154,7 +154,8 @@ const createPost = async (req, res) => {
     // Crear nuevo post
     const post = new Post({
       ...postData,
-      author: postData.author || req.user?.username || 'Admin'
+      author: postData.author || req.user?.username || 'Admin',
+      authorAvatar: postData.authorAvatar || undefined
     });
 
     console.log('💾 Guardando post:', { title: post.title, slug: post.slug, author: post.author });

@@ -139,7 +139,7 @@ const BlogPost = () => {
               <div className="card mb-4">
                 <div className="card-body text-center">
                   <img 
-                    src="https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"
+                    src={post.authorAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.author || 'Autor')}&background=random&rounded=true`}
                     alt={post.author}
                     className="rounded-circle mb-3"
                     style={{ width: '80px', height: '80px', objectFit: 'cover' }}
