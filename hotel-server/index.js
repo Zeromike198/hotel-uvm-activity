@@ -3,23 +3,37 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 const { connectDatabase } = require('./src/config/database');
+const { 
+  corsOptions, 
+  helmetConfig, 
+  generalLimiter, 
+  authLimiter, 
+  createLimiter, 
+  weatherLimiter 
+} = require('./src/config/security');
+const { sanitizeInput } = require('./src/middleware/validation');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Middleware de seguridad
+app.use(helmetConfig);
+app.use(cors(corsOptions));
+app.use(generalLimiter);
+
+// Middleware de parsing y sanitización
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(sanitizeInput);
 
 // Importar rutas
 const reservationsRoutes = require('./src/routes/reservations');
 const weatherRoutes = require('./src/routes/weather');
 const postsRoutes = require('./src/routes/posts');
 
-// Rutas API
-app.use('/api/reservations', reservationsRoutes);
-app.use('/api/weather', weatherRoutes);
+// Rutas API con rate limiting específico
+app.use('/api/reservations', createLimiter, reservationsRoutes);
+app.use('/api/weather', weatherLimiter, weatherRoutes);
 app.use('/api/posts', postsRoutes);
 
 // Ruta de prueba
