@@ -13,9 +13,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Importar rutas
 const reservationsRoutes = require('./src/routes/reservations');
+const weatherRoutes = require('./src/routes/weather');
 
 // Rutas API
 app.use('/api/reservations', reservationsRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -23,7 +25,8 @@ app.get('/', (req, res) => {
     message: 'Hotel Server API funcionando correctamente',
     version: '1.0.0',
     endpoints: {
-      reservations: '/api/reservations'
+      reservations: '/api/reservations',
+      weather: '/api/weather'
     }
   });
 });
@@ -50,6 +53,7 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
   console.log(`📧 Configuración SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+  console.log(`🌤️  API del clima: ${process.env.OPENWEATHER_API_KEY ? 'Configurada' : 'No configurada'}`);
   console.log(`🌐 API disponible en: http://localhost:${PORT}`);
 });
 
