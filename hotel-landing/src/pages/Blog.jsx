@@ -1,18 +1,261 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 const Blog = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/posts');
+        setPosts(response.data.data || []);
+      } catch (error) {
+        console.error('Error al cargar posts:', error);
+        // Posts de ejemplo si no hay conexión
+        setPosts([
+          {
+            id: 1,
+            title: 'Descubre los Secretos del Páramo Andino',
+            excerpt: 'Una guía completa para explorar el ecosistema único del páramo venezolano',
+            image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            author: 'María González',
+            date: '2024-01-15',
+            category: 'Turismo',
+            slug: 'secretos-paramo-andino'
+          },
+          {
+            id: 2,
+            title: 'Gastronomía Andina: Sabores Únicos de Mérida',
+            excerpt: 'Explora la rica tradición culinaria de los Andes venezolanos',
+            image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            author: 'Roberto Silva',
+            date: '2024-01-10',
+            category: 'Gastronomía',
+            slug: 'gastronomia-andina-merida'
+          },
+          {
+            id: 3,
+            title: 'El Teleférico de Mérida: Una Experiencia Inolvidable',
+            excerpt: 'Todo lo que necesitas saber sobre el teleférico más alto del mundo',
+            image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+            author: 'Carlos Mendoza',
+            date: '2024-01-05',
+            category: 'Aventura',
+            slug: 'teleferico-merida-experiencia'
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="blog-page" style={{ marginTop: '76px' }}>
+        <div className="container py-5">
+          <div className="text-center">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="mt-3">Cargando artículos del blog...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h1>Blog del Hotel</h1>
-      <p>Últimas noticias y artículos sobre nuestro hotel</p>
-      <div>
-        <h2>Artículos recientes:</h2>
-        <ul>
-          <li>Guía de actividades en la ciudad</li>
-          <li>Consejos para viajeros</li>
-          <li>Eventos especiales del hotel</li>
-          <li>Gastronomía local</li>
-        </ul>
+    <div className="blog-page" style={{ marginTop: '76px' }}>
+      {/* Hero Section */}
+      <div className="hero-blog bg-primary text-white py-5">
+        <div className="container">
+          <div className="row align-items-center">
+            <div className="col-md-8">
+              <h1 className="display-4 fw-bold mb-3">
+                <i className="fas fa-blog me-3"></i>
+                Blog de Hotel Paradise Mérida
+              </h1>
+              <p className="lead mb-4">
+                Descubre los secretos de Mérida, consejos de viaje y experiencias únicas 
+                en los Andes venezolanos
+              </p>
+            </div>
+            <div className="col-md-4">
+              <div className="text-center">
+                <i className="fas fa-mountain fa-5x opacity-75"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Blog Posts */}
+      <div className="container py-5">
+        <div className="row">
+          <div className="col-12 mb-5">
+            <h2 className="display-6 fw-bold text-primary text-center">
+              Artículos Destacados
+            </h2>
+            <p className="lead text-muted text-center">
+              Explora Mérida a través de nuestros artículos especializados
+            </p>
+          </div>
+        </div>
+
+        <div className="row g-4">
+          {posts.map((post) => (
+            <div key={post.id} className="col-md-6 col-lg-4">
+              <div className="card h-100 border-0 shadow-sm blog-card">
+                <div className="position-relative">
+                  <img 
+                    src={post.image} 
+                    className="card-img-top" 
+                    alt={post.title}
+                    style={{ height: '250px', objectFit: 'cover' }}
+                  />
+                  <div className="position-absolute top-0 start-0 m-3">
+                    <span className="badge bg-primary">
+                      {post.category}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="card-body d-flex flex-column">
+                  <h5 className="card-title text-primary">{post.title}</h5>
+                  <p className="card-text text-muted flex-grow-1">{post.excerpt}</p>
+                  
+                  <div className="post-meta mb-3">
+                    <div className="row">
+                      <div className="col-6">
+                        <small className="text-muted">
+                          <i className="fas fa-user me-1"></i>
+                          {post.author}
+                        </small>
+                      </div>
+                      <div className="col-6">
+                        <small className="text-muted">
+                          <i className="fas fa-calendar me-1"></i>
+                          {new Date(post.date).toLocaleDateString('es-ES')}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Link 
+                    to={`/blog/${post.slug}`} 
+                    className="btn btn-outline-primary"
+                  >
+                    <i className="fas fa-arrow-right me-2"></i>
+                    Leer Más
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Categories Section */}
+      <div className="bg-light py-5">
+        <div className="container">
+          <div className="row">
+            <div className="col-12 text-center mb-5">
+              <h2 className="display-5 fw-bold text-primary">Categorías</h2>
+              <p className="lead text-muted">
+                Explora nuestros contenidos por categoría
+              </p>
+            </div>
+          </div>
+          
+          <div className="row g-4">
+            <div className="col-md-3 col-sm-6">
+              <div className="text-center">
+                <div className="category-icon mb-3">
+                  <i className="fas fa-mountain fa-3x text-primary"></i>
+                </div>
+                <h5>Turismo</h5>
+                <p className="text-muted">
+                  Descubre los mejores lugares para visitar en Mérida
+                </p>
+              </div>
+            </div>
+            
+            <div className="col-md-3 col-sm-6">
+              <div className="text-center">
+                <div className="category-icon mb-3">
+                  <i className="fas fa-utensils fa-3x text-primary"></i>
+                </div>
+                <h5>Gastronomía</h5>
+                <p className="text-muted">
+                  Sabores únicos de la cocina andina venezolana
+                </p>
+              </div>
+            </div>
+            
+            <div className="col-md-3 col-sm-6">
+              <div className="text-center">
+                <div className="category-icon mb-3">
+                  <i className="fas fa-hiking fa-3x text-primary"></i>
+                </div>
+                <h5>Aventura</h5>
+                <p className="text-muted">
+                  Actividades de ecoturismo y aventura en los Andes
+                </p>
+              </div>
+            </div>
+            
+            <div className="col-md-3 col-sm-6">
+              <div className="text-center">
+                <div className="category-icon mb-3">
+                  <i className="fas fa-spa fa-3x text-primary"></i>
+                </div>
+                <h5>Bienestar</h5>
+                <p className="text-muted">
+                  Relax y bienestar en nuestro spa de montaña
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Newsletter Section */}
+      <div className="container py-5">
+        <div className="row">
+          <div className="col-12">
+            <div className="card bg-primary text-white">
+              <div className="card-body text-center py-5">
+                <h3 className="card-title mb-3">
+                  <i className="fas fa-envelope me-2"></i>
+                  Mantente Actualizado
+                </h3>
+                <p className="card-text mb-4">
+                  Suscríbete a nuestro newsletter y recibe las últimas noticias 
+                  sobre Mérida y ofertas especiales del hotel
+                </p>
+                <div className="row justify-content-center">
+                  <div className="col-md-6">
+                    <div className="input-group">
+                      <input 
+                        type="email" 
+                        className="form-control" 
+                        placeholder="Tu email"
+                      />
+                      <button className="btn btn-light" type="button">
+                        Suscribirse
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

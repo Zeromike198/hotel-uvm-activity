@@ -28,6 +28,7 @@ const ReservationForm = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Permitir fechas de hoy en adelante
     return checkInDate >= today && checkOutDate > checkInDate;
   };
 
@@ -58,8 +59,17 @@ const ReservationForm = () => {
     }
 
     // Validación de fechas coherentes
-    if (formData.checkIn && formData.checkOut && !validateDates(formData.checkIn, formData.checkOut)) {
-      newErrors.checkOut = 'La fecha de salida debe ser posterior a la fecha de entrada';
+    if (formData.checkIn && formData.checkOut) {
+      const checkInDate = new Date(formData.checkIn);
+      const checkOutDate = new Date(formData.checkOut);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (checkInDate < today) {
+        newErrors.checkIn = 'La fecha de entrada no puede ser anterior a hoy';
+      } else if (checkOutDate <= checkInDate) {
+        newErrors.checkOut = 'La fecha de salida debe ser posterior a la fecha de entrada';
+      }
     }
 
     if (!formData.guests || formData.guests < 1) {
@@ -101,7 +111,7 @@ const ReservationForm = () => {
     setSubmitMessage('');
 
     try {
-      const response = await axios.post('/api/reservations', formData);
+      const response = await axios.post('http://localhost:3000/api/reservations', formData);
       setSubmitMessage('¡Reserva enviada exitosamente! Te contactaremos pronto.');
       
       // Limpiar formulario
@@ -124,7 +134,7 @@ const ReservationForm = () => {
   };
 
   return (
-    <div className="container my-5">
+    <div id="reservation" className="container my-5">
       <div className="row justify-content-center">
         <div className="col-md-8">
           <div className="card shadow">

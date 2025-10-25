@@ -1,19 +1,289 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Admin = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [reservations, setReservations] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [activeTab, setActiveTab] = useState('reservations');
+  const [loading, setLoading] = useState(false);
+
+  // Autenticación simple
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (loginData.username === 'admin' && loginData.password === 'admin123') {
+      setIsAuthenticated(true);
+      fetchData();
+    } else {
+      alert('Credenciales incorrectas');
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Obtener reservas
+      const reservationsResponse = await axios.get('http://localhost:3000/api/reservations');
+      setReservations(reservationsResponse.data.data || []);
+      
+      // Obtener posts
+      const postsResponse = await axios.get('http://localhost:3000/api/posts');
+      setPosts(postsResponse.data.data || []);
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setReservations([]);
+    setPosts([]);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="admin-login" style={{ marginTop: '76px', minHeight: '80vh' }}>
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-md-6 col-lg-4">
+              <div className="card shadow-lg border-0">
+                <div className="card-header bg-primary text-white text-center">
+                  <h4 className="mb-0">
+                    <i className="fas fa-lock me-2"></i>
+                    Panel de Administración
+                  </h4>
+                </div>
+                <div className="card-body p-4">
+                  <form onSubmit={handleLogin}>
+                    <div className="mb-3">
+                      <label htmlFor="username" className="form-label">Usuario</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="username"
+                        value={loginData.username}
+                        onChange={(e) => setLoginData({...loginData, username: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="password" className="form-label">Contraseña</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        id="password"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-primary w-100">
+                      <i className="fas fa-sign-in-alt me-2"></i>
+                      Iniciar Sesión
+                    </button>
+                  </form>
+                  <div className="mt-3 text-center">
+                    <small className="text-muted">
+                      Usuario: admin | Contraseña: admin123
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h1>Panel de Administración</h1>
-      <p>Área administrativa del hotel</p>
-      <div>
-        <h2>Funciones administrativas:</h2>
-        <ul>
-          <li>Gestión de reservas</li>
-          <li>Administración de habitaciones</li>
-          <li>Gestión de usuarios</li>
-          <li>Reportes y estadísticas</li>
-          <li>Configuración del sistema</li>
+    <div className="admin-dashboard" style={{ marginTop: '76px' }}>
+      {/* Header */}
+      <div className="bg-primary text-white py-4">
+        <div className="container">
+          <div className="row align-items-center">
+            <div className="col-md-8">
+              <h1 className="h3 mb-0">
+                <i className="fas fa-tachometer-alt me-2"></i>
+                Panel de Administración - Hotel Paradise Mérida
+              </h1>
+            </div>
+            <div className="col-md-4 text-end">
+              <button onClick={handleLogout} className="btn btn-outline-light">
+                <i className="fas fa-sign-out-alt me-2"></i>
+                Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="container py-4">
+        <ul className="nav nav-tabs">
+          <li className="nav-item">
+            <button
+              className={`nav-link ${activeTab === 'reservations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reservations')}
+            >
+              <i className="fas fa-calendar-check me-2"></i>
+              Reservas ({reservations.length})
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${activeTab === 'posts' ? 'active' : ''}`}
+              onClick={() => setActiveTab('posts')}
+            >
+              <i className="fas fa-blog me-2"></i>
+              Blog Posts ({posts.length})
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link ${activeTab === 'stats' ? 'active' : ''}`}
+              onClick={() => setActiveTab('stats')}
+            >
+              <i className="fas fa-chart-bar me-2"></i>
+              Estadísticas
+            </button>
+          </li>
         </ul>
+      </div>
+
+      {/* Content */}
+      <div className="container pb-5">
+        {activeTab === 'reservations' && (
+          <div className="reservations-section">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h3>Gestión de Reservas</h3>
+              <button onClick={fetchData} className="btn btn-outline-primary">
+                <i className="fas fa-refresh me-2"></i>
+                Actualizar
+              </button>
+            </div>
+            
+            {loading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Cargando...</span>
+                </div>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Cliente</th>
+                      <th>Email</th>
+                      <th>Check-in</th>
+                      <th>Check-out</th>
+                      <th>Habitación</th>
+                      <th>Huéspedes</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservations.map((reservation) => (
+                      <tr key={reservation.id}>
+                        <td>#{reservation.id}</td>
+                        <td>{reservation.name}</td>
+                        <td>{reservation.email}</td>
+                        <td>{new Date(reservation.checkIn).toLocaleDateString('es-ES')}</td>
+                        <td>{new Date(reservation.checkOut).toLocaleDateString('es-ES')}</td>
+                        <td>{reservation.roomType}</td>
+                        <td>{reservation.guests}</td>
+                        <td>
+                          <span className={`badge ${reservation.status === 'pending' ? 'bg-warning' : 'bg-success'}`}>
+                            {reservation.status === 'pending' ? 'Pendiente' : 'Confirmada'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'posts' && (
+          <div className="posts-section">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h3>Gestión del Blog</h3>
+              <button className="btn btn-primary">
+                <i className="fas fa-plus me-2"></i>
+                Nuevo Post
+              </button>
+            </div>
+            
+            <div className="row">
+              {posts.map((post) => (
+                <div key={post.id} className="col-md-6 col-lg-4 mb-4">
+                  <div className="card">
+                    <img src={post.image} className="card-img-top" alt={post.title} style={{ height: '200px', objectFit: 'cover' }} />
+                    <div className="card-body">
+                      <h5 className="card-title">{post.title}</h5>
+                      <p className="card-text">{post.excerpt}</p>
+                      <div className="d-flex justify-content-between">
+                        <small className="text-muted">{post.author}</small>
+                        <small className="text-muted">{new Date(post.date).toLocaleDateString('es-ES')}</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="stats-section">
+            <h3>Estadísticas del Hotel</h3>
+            <div className="row">
+              <div className="col-md-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <i className="fas fa-calendar-check fa-3x text-primary mb-3"></i>
+                    <h4>{reservations.length}</h4>
+                    <p className="text-muted">Reservas Totales</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <i className="fas fa-clock fa-3x text-warning mb-3"></i>
+                    <h4>{reservations.filter(r => r.status === 'pending').length}</h4>
+                    <p className="text-muted">Pendientes</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <i className="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h4>{reservations.filter(r => r.status === 'confirmed').length}</h4>
+                    <p className="text-muted">Confirmadas</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className="card text-center">
+                  <div className="card-body">
+                    <i className="fas fa-blog fa-3x text-info mb-3"></i>
+                    <h4>{posts.length}</h4>
+                    <p className="text-muted">Posts del Blog</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

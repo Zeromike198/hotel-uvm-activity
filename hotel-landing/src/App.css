@@ -1,42 +1,307 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Estilos personalizados para Hotel Paradise Mérida */
+
+* {
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-@keyframes logo-spin {
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+main {
+  flex: 1;
+  width: 100%;
+}
+
+/* Hero Section */
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.hero-image {
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  width: 100%;
+}
+
+.hero-content {
+  z-index: 2;
+}
+
+.hero-badge {
+  animation: fadeInUp 1s ease-out;
+}
+
+.hero-features {
+  animation: fadeInUp 1s ease-out 0.5s both;
+}
+
+/* Cards */
+.service-card, .testimonial-card, .blog-card, .room-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover, .testimonial-card:hover, .blog-card:hover, .room-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+/* Weather Widget */
+.weather-widget {
+  border: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.weather-icon-img {
+  width: 60px;
+  height: 60px;
+}
+
+.temperature {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* Animations */
+@keyframes fadeInUp {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(30px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
-.card {
-  padding: 2em;
+/* Service Icons */
+.service-icon, .value-icon, .category-icon {
+  transition: transform 0.3s ease;
 }
 
-.read-the-docs {
-  color: #888;
+.service-icon:hover, .value-icon:hover, .category-icon:hover {
+  transform: scale(1.1);
+}
+
+/* Testimonials */
+.testimonial-card {
+  border-left: 4px solid #007bff;
+}
+
+.rating i {
+  color: #ffc107;
+}
+
+/* Blog Cards */
+.blog-card .card-img-top {
+  transition: transform 0.3s ease;
+}
+
+.blog-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* Room Cards */
+.room-card .card-img-top {
+  transition: transform 0.3s ease;
+}
+
+.room-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* Layout Balance */
+.container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 15px;
+  width: 100%;
+}
+
+.row {
+  margin: 0;
+  width: 100%;
+}
+
+.col-md-6, .col-md-8, .col-md-4, .col-lg-6, .col-lg-8, .col-lg-4 {
+  padding: 0 15px;
+}
+
+/* Full Width Sections */
+.bg-primary, .bg-light, .hero-rooms, .hero-about, .hero-blog, .hero-post {
+  width: 100%;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.services-section, .testimonials-section, .blog-page, .about-page, .rooms-page {
+  width: 100%;
+}
+
+/* Ensure all sections take full width */
+section, .container-fluid, .row {
+  width: 100%;
+  max-width: none;
+}
+
+/* Override Bootstrap container max-width */
+.container {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+@media (min-width: 576px) {
+  .container {
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: none !important;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .hero-content .lead {
+    font-size: 1rem;
+  }
+  
+  .display-4 {
+    font-size: 2.5rem;
+  }
+  
+  .display-5 {
+    font-size: 2rem;
+  }
+  
+  .display-6 {
+    font-size: 1.75rem;
+  }
+  
+  .container {
+    padding: 0 10px;
+  }
+}
+
+/* Custom Colors */
+.text-primary {
+  color: #007bff !important;
+}
+
+.bg-primary {
+  background-color: #007bff !important;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Loading States */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Form Styles */
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Badge Styles */
+.badge {
+  font-size: 0.75em;
+  padding: 0.5em 0.75em;
+}
+
+/* Footer */
+footer {
+  margin-top: auto;
+}
+
+.social-links a {
+  font-size: 1.5rem;
+  transition: color 0.3s ease;
+}
+
+.social-links a:hover {
+  color: #007bff !important;
+}
+
+/* Utility Classes */
+.opacity-75 {
+  opacity: 0.75;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
 }

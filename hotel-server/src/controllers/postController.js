@@ -1,66 +1,110 @@
-const Post = require('../models/Post');
+// Simulación de base de datos en memoria para posts
+let posts = [
+  {
+    id: 1,
+    title: 'Descubre los Secretos del Páramo Andino',
+    excerpt: 'Una guía completa para explorar el ecosistema único del páramo venezolano',
+    content: 'El páramo andino es uno de los ecosistemas más fascinantes de Venezuela...',
+    image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    author: 'María González',
+    date: '2024-01-15',
+    category: 'Turismo',
+    slug: 'secretos-paramo-andino',
+    tags: ['páramo', 'ecoturismo', 'naturaleza'],
+    status: 'published'
+  },
+  {
+    id: 2,
+    title: 'Gastronomía Andina: Sabores Únicos de Mérida',
+    excerpt: 'Explora la rica tradición culinaria de los Andes venezolanos',
+    content: 'La gastronomía andina de Mérida es una fusión única de sabores...',
+    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    author: 'Roberto Silva',
+    date: '2024-01-10',
+    category: 'Gastronomía',
+    slug: 'gastronomia-andina-merida',
+    tags: ['gastronomía', 'cocina local', 'tradición'],
+    status: 'published'
+  },
+  {
+    id: 3,
+    title: 'El Teleférico de Mérida: Una Experiencia Inolvidable',
+    excerpt: 'Todo lo que necesitas saber sobre el teleférico más alto del mundo',
+    content: 'El teleférico de Mérida es una experiencia única que te lleva a las alturas...',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    author: 'Carlos Mendoza',
+    date: '2024-01-05',
+    category: 'Aventura',
+    slug: 'teleferico-merida-experiencia',
+    tags: ['teleférico', 'aventura', 'vistas'],
+    status: 'published'
+  }
+];
 
-/**
- * GET /api/posts - Obtener todos los posts
- * Query params: page, limit, status, tag, featured
- */
-const getAllPosts = async (req, res) => {
+let nextId = 4;
+
+// Validación de datos del post
+const validatePostData = (data) => {
+  const errors = [];
+  
+  if (!data.title || data.title.trim() === '') {
+    errors.push('El título es requerido');
+  }
+  
+  if (!data.excerpt || data.excerpt.trim() === '') {
+    errors.push('El extracto es requerido');
+  }
+  
+  if (!data.content || data.content.trim() === '') {
+    errors.push('El contenido es requerido');
+  }
+  
+  if (!data.author || data.author.trim() === '') {
+    errors.push('El autor es requerido');
+  }
+  
+  if (!data.category || data.category.trim() === '') {
+    errors.push('La categoría es requerida');
+  }
+  
+  return errors;
+};
+
+// Generar slug automáticamente
+const generateSlug = (title) => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim('-');
+};
+
+// Controlador para obtener todos los posts
+const getAllPosts = (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      status = 'published',
-      tag,
-      featured,
-      search
-    } = req.query;
-
-    // Construir filtros
-    const filters = {};
+    const { category, status } = req.query;
+    let filteredPosts = [...posts];
     
+    // Filtrar por categoría si se especifica
+    if (category) {
+      filteredPosts = filteredPosts.filter(post => 
+        post.category.toLowerCase() === category.toLowerCase()
+      );
+    }
+    
+    // Filtrar por estado si se especifica
     if (status) {
-      filters.status = status;
+      filteredPosts = filteredPosts.filter(post => 
+        post.status === status
+      );
     }
     
-    if (tag) {
-      filters.tags = { $in: [tag] };
-    }
-    
-    if (featured !== undefined) {
-      filters.featured = featured === 'true';
-    }
-    
-    if (search) {
-      filters.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-        { excerpt: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    // Calcular paginación
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Ejecutar consulta
-    const posts = await Post.find(filters)
-      .sort({ publishedAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('-content'); // Excluir contenido completo para listado
-
-    const total = await Post.countDocuments(filters);
-
     res.json({
       success: true,
-      data: posts,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit))
-      }
+      data: filteredPosts,
+      total: filteredPosts.length
     });
-
   } catch (error) {
     console.error('Error al obtener posts:', error);
     res.status(500).json({
@@ -71,14 +115,11 @@ const getAllPosts = async (req, res) => {
   }
 };
 
-/**
- * GET /api/posts/:id - Obtener post por ID
- */
-const getPostById = async (req, res) => {
+// Controlador para obtener un post por ID
+const getPostById = (req, res) => {
   try {
     const { id } = req.params;
-    
-    const post = await Post.findById(id);
+    const post = posts.find(p => p.id === parseInt(id));
     
     if (!post) {
       return res.status(404).json({
@@ -86,17 +127,11 @@ const getPostById = async (req, res) => {
         message: 'Post no encontrado'
       });
     }
-
-    // Incrementar vistas si es un post publicado
-    if (post.status === 'published') {
-      await post.incrementViews();
-    }
-
+    
     res.json({
       success: true,
       data: post
     });
-
   } catch (error) {
     console.error('Error al obtener post:', error);
     res.status(500).json({
@@ -107,14 +142,11 @@ const getPostById = async (req, res) => {
   }
 };
 
-/**
- * GET /api/posts/slug/:slug - Obtener post por slug
- */
-const getPostBySlug = async (req, res) => {
+// Controlador para obtener un post por slug
+const getPostBySlug = (req, res) => {
   try {
     const { slug } = req.params;
-    
-    const post = await Post.findBySlug(slug);
+    const post = posts.find(p => p.slug === slug);
     
     if (!post) {
       return res.status(404).json({
@@ -122,23 +154,13 @@ const getPostBySlug = async (req, res) => {
         message: 'Post no encontrado'
       });
     }
-
-    // Incrementar vistas
-    await post.incrementViews();
-
-    // Obtener posts relacionados
-    const relatedPosts = await post.getRelatedPosts(3);
-
+    
     res.json({
       success: true,
-      data: {
-        ...post.toObject(),
-        relatedPosts
-      }
+      data: post
     });
-
   } catch (error) {
-    console.error('Error al obtener post por slug:', error);
+    console.error('Error al obtener post:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener post',
@@ -147,212 +169,157 @@ const getPostBySlug = async (req, res) => {
   }
 };
 
-/**
- * POST /api/posts - Crear nuevo post
- */
-const createPost = async (req, res) => {
+// Controlador para crear un nuevo post
+const createPost = (req, res) => {
   try {
-    const postData = {
-      ...req.body,
-      author: req.user.username
-    };
-
-    // Validar datos requeridos
-    if (!postData.title || !postData.content) {
+    const postData = req.body;
+    
+    // Validar datos
+    const validationErrors = validatePostData(postData);
+    if (validationErrors.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Título y contenido son requeridos'
+        message: 'Datos del post inválidos',
+        errors: validationErrors
       });
     }
-
-    const post = new Post(postData);
-    await post.save();
-
+    
+    // Crear nuevo post
+    const newPost = {
+      id: nextId++,
+      title: postData.title,
+      excerpt: postData.excerpt,
+      content: postData.content,
+      image: postData.image || 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      author: postData.author,
+      date: new Date().toISOString().split('T')[0],
+      category: postData.category,
+      slug: postData.slug || generateSlug(postData.title),
+      tags: postData.tags || [],
+      status: postData.status || 'draft'
+    };
+    
+    // Agregar a la lista
+    posts.push(newPost);
+    
     res.status(201).json({
       success: true,
       message: 'Post creado exitosamente',
-      data: post
+      data: newPost
     });
-
+    
   } catch (error) {
     console.error('Error al crear post:', error);
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'El slug ya existe',
-        error: 'DUPLICATE_SLUG'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Datos de validación inválidos',
-        errors
-      });
-    }
-
     res.status(500).json({
       success: false,
-      message: 'Error al crear post',
+      message: 'Error interno del servidor',
       error: error.message
     });
   }
 };
 
-/**
- * PUT /api/posts/:id - Actualizar post
- */
-const updatePost = async (req, res) => {
+// Controlador para actualizar un post
+const updatePost = (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-
-    const post = await Post.findById(id);
+    const postData = req.body;
     
-    if (!post) {
+    const postIndex = posts.findIndex(p => p.id === parseInt(id));
+    if (postIndex === -1) {
       return res.status(404).json({
         success: false,
         message: 'Post no encontrado'
       });
     }
-
-    // Verificar permisos (solo el autor o admin puede editar)
-    if (post.author !== req.user.username && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para editar este post'
+    
+    // Validar datos si se proporcionan
+    if (postData.title || postData.excerpt || postData.content) {
+      const validationErrors = validatePostData({
+        title: postData.title || posts[postIndex].title,
+        excerpt: postData.excerpt || posts[postIndex].excerpt,
+        content: postData.content || posts[postIndex].content,
+        author: postData.author || posts[postIndex].author,
+        category: postData.category || posts[postIndex].category
       });
+      
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Datos del post inválidos',
+          errors: validationErrors
+        });
+      }
     }
-
+    
     // Actualizar post
-    Object.assign(post, updateData);
-    await post.save();
-
+    posts[postIndex] = {
+      ...posts[postIndex],
+      ...postData,
+      slug: postData.title ? generateSlug(postData.title) : posts[postIndex].slug
+    };
+    
     res.json({
       success: true,
       message: 'Post actualizado exitosamente',
-      data: post
+      data: posts[postIndex]
     });
-
+    
   } catch (error) {
     console.error('Error al actualizar post:', error);
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'El slug ya existe',
-        error: 'DUPLICATE_SLUG'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Datos de validación inválidos',
-        errors
-      });
-    }
-
     res.status(500).json({
       success: false,
-      message: 'Error al actualizar post',
+      message: 'Error interno del servidor',
       error: error.message
     });
   }
 };
 
-/**
- * DELETE /api/posts/:id - Eliminar post
- */
-const deletePost = async (req, res) => {
+// Controlador para eliminar un post
+const deletePost = (req, res) => {
   try {
     const { id } = req.params;
-
-    const post = await Post.findById(id);
     
-    if (!post) {
+    const postIndex = posts.findIndex(p => p.id === parseInt(id));
+    if (postIndex === -1) {
       return res.status(404).json({
         success: false,
         message: 'Post no encontrado'
       });
     }
-
-    // Verificar permisos (solo el autor o admin puede eliminar)
-    if (post.author !== req.user.username && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permisos para eliminar este post'
-      });
-    }
-
-    await Post.findByIdAndDelete(id);
-
+    
+    // Eliminar post
+    const deletedPost = posts.splice(postIndex, 1)[0];
+    
     res.json({
       success: true,
-      message: 'Post eliminado exitosamente'
+      message: 'Post eliminado exitosamente',
+      data: deletedPost
     });
-
+    
   } catch (error) {
     console.error('Error al eliminar post:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al eliminar post',
+      message: 'Error interno del servidor',
       error: error.message
     });
   }
 };
 
-/**
- * GET /api/posts/tags - Obtener todas las etiquetas
- */
-const getTags = async (req, res) => {
+// Controlador para obtener categorías
+const getCategories = (req, res) => {
   try {
-    const tags = await Post.distinct('tags', { status: 'published' });
+    const categories = [...new Set(posts.map(post => post.category))];
     
     res.json({
       success: true,
-      data: tags
+      data: categories
     });
-
   } catch (error) {
-    console.error('Error al obtener etiquetas:', error);
+    console.error('Error al obtener categorías:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener etiquetas',
-      error: error.message
-    });
-  }
-};
-
-/**
- * GET /api/posts/featured - Obtener posts destacados
- */
-const getFeaturedPosts = async (req, res) => {
-  try {
-    const { limit = 5 } = req.query;
-    
-    const posts = await Post.find({ 
-      featured: true, 
-      status: 'published' 
-    })
-    .sort({ publishedAt: -1 })
-    .limit(parseInt(limit))
-    .select('-content');
-
-    res.json({
-      success: true,
-      data: posts
-    });
-
-  } catch (error) {
-    console.error('Error al obtener posts destacados:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener posts destacados',
+      message: 'Error al obtener categorías',
       error: error.message
     });
   }
@@ -365,6 +332,5 @@ module.exports = {
   createPost,
   updatePost,
   deletePost,
-  getTags,
-  getFeaturedPosts
+  getCategories
 };
