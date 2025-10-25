@@ -60,10 +60,12 @@ app.use((err, req, res, next) => {
 });
 
 // Middleware para rutas no encontradas
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Ruta no encontrada'
+    message: 'Ruta no encontrada',
+    path: req.path,
+    method: req.method
   });
 });
 

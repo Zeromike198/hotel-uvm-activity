@@ -71,7 +71,7 @@ const postSchema = new mongoose.Schema({
 });
 
 // Índices para mejorar el rendimiento
-postSchema.index({ slug: 1 });
+// Nota: slug ya tiene índice único definido en el esquema
 postSchema.index({ publishedAt: -1 });
 postSchema.index({ status: 1 });
 postSchema.index({ tags: 1 });

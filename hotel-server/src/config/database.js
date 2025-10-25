@@ -8,12 +8,10 @@ const connectDatabase = async () => {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hotel-db';
     
     const options = {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       maxPoolSize: 10, // Mantener hasta 10 conexiones
       serverSelectionTimeoutMS: 5000, // Mantener intentando por 5 segundos
       socketTimeoutMS: 45000, // Cerrar sockets después de 45 segundos de inactividad
-      bufferMaxEntries: 0 // Deshabilitar mongoose buffering
+      bufferCommands: false // Deshabilitar mongoose buffering
     };
 
     await mongoose.connect(MONGODB_URI, options);
