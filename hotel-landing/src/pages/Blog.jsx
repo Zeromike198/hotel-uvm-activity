@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { postService } from '../services/postService';
 
 const Blog = () => {
   const [posts, setPosts] = useState([]);
@@ -9,43 +9,15 @@ const Blog = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/posts');
-        setPosts(response.data.data || []);
+        const response = await postService.getAllPosts({ 
+          status: 'published',
+          limit: 12,
+          sort: '-publishedAt'
+        });
+        setPosts(response.data || []);
       } catch (error) {
         console.error('Error al cargar posts:', error);
-        // Posts de ejemplo si no hay conexión
-        setPosts([
-          {
-            id: 1,
-            title: 'Descubre los Secretos del Páramo Andino',
-            excerpt: 'Una guía completa para explorar el ecosistema único del páramo venezolano',
-            image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-            author: 'María González',
-            date: '2024-01-15',
-            category: 'Turismo',
-            slug: 'secretos-paramo-andino'
-          },
-          {
-            id: 2,
-            title: 'Gastronomía Andina: Sabores Únicos de Mérida',
-            excerpt: 'Explora la rica tradición culinaria de los Andes venezolanos',
-            image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-            author: 'Roberto Silva',
-            date: '2024-01-10',
-            category: 'Gastronomía',
-            slug: 'gastronomia-andina-merida'
-          },
-          {
-            id: 3,
-            title: 'El Teleférico de Mérida: Una Experiencia Inolvidable',
-            excerpt: 'Todo lo que necesitas saber sobre el teleférico más alto del mundo',
-            image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-            author: 'Carlos Mendoza',
-            date: '2024-01-05',
-            category: 'Aventura',
-            slug: 'teleferico-merida-experiencia'
-          }
-        ]);
+        setPosts([]);
       } finally {
         setLoading(false);
       }
@@ -113,15 +85,22 @@ const Blog = () => {
               <div className="card h-100 border-0 shadow-sm blog-card">
                 <div className="position-relative">
                   <img 
-                    src={post.image} 
+                    src={post.images?.[0]?.url || 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
                     className="card-img-top" 
-                    alt={post.title}
+                    alt={post.images?.[0]?.alt || post.title}
                     style={{ height: '250px', objectFit: 'cover' }}
                   />
                   <div className="position-absolute top-0 start-0 m-3">
-                    <span className="badge bg-primary">
-                      {post.category}
-                    </span>
+                    {post.featured && (
+                      <span className="badge bg-warning me-2">
+                        <i className="fas fa-star me-1"></i>Destacado
+                      </span>
+                    )}
+                    {post.tags?.[0] && (
+                      <span className="badge bg-primary">
+                        {post.tags[0]}
+                      </span>
+                    )}
                   </div>
                 </div>
                 
@@ -140,7 +119,7 @@ const Blog = () => {
                       <div className="col-6">
                         <small className="text-muted">
                           <i className="fas fa-calendar me-1"></i>
-                          {new Date(post.date).toLocaleDateString('es-ES')}
+                          {new Date(post.publishedAt).toLocaleDateString('es-ES')}
                         </small>
                       </div>
                     </div>

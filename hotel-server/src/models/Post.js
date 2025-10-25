@@ -84,6 +84,7 @@ postSchema.virtual('url').get(function() {
 
 // Virtual para obtener el tiempo de lectura estimado
 postSchema.virtual('readingTime').get(function() {
+  if (!this.content) return 1;
   const wordsPerMinute = 200;
   const wordCount = this.content.split(' ').length;
   return Math.ceil(wordCount / wordsPerMinute);
@@ -91,7 +92,7 @@ postSchema.virtual('readingTime').get(function() {
 
 // Middleware pre-save para generar slug automáticamente si no se proporciona
 postSchema.pre('save', function(next) {
-  if (this.isModified('title') && !this.slug) {
+  if (this.isModified('title') && !this.slug && this.title) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '') // Remover caracteres especiales

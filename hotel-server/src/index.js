@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 const { connectDatabase } = require('./config/database');
 const { seedAdmin } = require('./seeders/adminSeeder');
+const { seedPosts } = require('./seeders/postsSeeder');
 const { 
   corsOptions, 
   helmetConfig, 
@@ -79,8 +80,9 @@ const startServer = async () => {
     // Conectar a la base de datos
     await connectDatabase();
     
-    // Ejecutar seeder de admin
+    // Ejecutar seeders
     await seedAdmin();
+    await seedPosts();
     
     // Iniciar servidor
     app.listen(PORT, () => {

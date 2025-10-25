@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { authService } from '../services/authService';
+import { postService } from '../services/postService';
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +13,16 @@ const Admin = () => {
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [postForm, setPostForm] = useState({
+    title: '',
+    content: '',
+    excerpt: '',
+    tags: [],
+    status: 'draft',
+    featured: false
+  });
 
   // Verificar autenticación al cargar el componente
   useEffect(() => {
@@ -56,8 +67,8 @@ const Admin = () => {
       setReservations(reservationsResponse.data.data || []);
       
       // Obtener posts
-      const postsResponse = await axios.get('http://localhost:3000/api/posts');
-      setPosts(postsResponse.data.data || []);
+      const postsResponse = await postService.getAllPosts({ limit: 50 });
+      setPosts(postsResponse.data || []);
     } catch (error) {
       console.error('Error al cargar datos:', error);
     } finally {
@@ -72,6 +83,86 @@ const Admin = () => {
     setReservations([]);
     setPosts([]);
     setLoginData({ username: '', password: '' });
+  };
+
+  // Funciones para manejar posts
+  const handleCreatePost = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await postService.createPost(postForm);
+      setPosts([response.data, ...posts]);
+      setShowPostForm(false);
+      setPostForm({
+        title: '',
+        content: '',
+        excerpt: '',
+        tags: [],
+        status: 'draft',
+        featured: false
+      });
+    } catch (error) {
+      console.error('Error al crear post:', error);
+      setError(error.message);
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditingPost(post);
+    setPostForm({
+      title: post.title,
+      content: post.content,
+      excerpt: post.excerpt,
+      tags: post.tags || [],
+      status: post.status,
+      featured: post.featured
+    });
+    setShowPostForm(true);
+  };
+
+  const handleUpdatePost = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await postService.updatePost(editingPost._id, postForm);
+      setPosts(posts.map(p => p._id === editingPost._id ? response.data : p));
+      setShowPostForm(false);
+      setEditingPost(null);
+      setPostForm({
+        title: '',
+        content: '',
+        excerpt: '',
+        tags: [],
+        status: 'draft',
+        featured: false
+      });
+    } catch (error) {
+      console.error('Error al actualizar post:', error);
+      setError(error.message);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este post?')) {
+      try {
+        await postService.deletePost(postId);
+        setPosts(posts.filter(p => p._id !== postId));
+      } catch (error) {
+        console.error('Error al eliminar post:', error);
+        setError(error.message);
+      }
+    }
+  };
+
+  const resetPostForm = () => {
+    setShowPostForm(false);
+    setEditingPost(null);
+    setPostForm({
+      title: '',
+      content: '',
+      excerpt: '',
+      tags: [],
+      status: 'draft',
+      featured: false
+    });
   };
 
   if (!isAuthenticated) {
@@ -274,23 +365,172 @@ const Admin = () => {
           <div className="posts-section">
             <div className="d-flex justify-content-between align-items-center mb-4">
               <h3>Gestión del Blog</h3>
-              <button className="btn btn-primary">
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowPostForm(true)}
+              >
                 <i className="fas fa-plus me-2"></i>
                 Nuevo Post
               </button>
             </div>
             
+            {showPostForm && (
+              <div className="card mb-4">
+                <div className="card-header">
+                  <h5>{editingPost ? 'Editar Post' : 'Nuevo Post'}</h5>
+                </div>
+                <div className="card-body">
+                  <form onSubmit={editingPost ? handleUpdatePost : handleCreatePost}>
+                    <div className="row">
+                      <div className="col-md-8">
+                        <div className="mb-3">
+                          <label className="form-label">Título</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={postForm.title}
+                            onChange={(e) => setPostForm({...postForm, title: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label">Contenido</label>
+                          <ul className="nav nav-tabs" id="contentTabs" role="tablist">
+                            <li className="nav-item" role="presentation">
+                              <button className="nav-link active" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit" type="button" role="tab">
+                                <i className="fas fa-edit me-1"></i>Editar
+                              </button>
+                            </li>
+                            <li className="nav-item" role="presentation">
+                              <button className="nav-link" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview" type="button" role="tab">
+                                <i className="fas fa-eye me-1"></i>Vista Previa
+                              </button>
+                            </li>
+                          </ul>
+                          <div className="tab-content" id="contentTabContent">
+                            <div className="tab-pane fade show active" id="edit" role="tabpanel">
+                              <textarea
+                                className="form-control mt-2"
+                                rows="10"
+                                value={postForm.content}
+                                onChange={(e) => setPostForm({...postForm, content: e.target.value})}
+                                required
+                                style={{ fontFamily: 'monospace' }}
+                                placeholder="Puedes usar HTML básico como &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, etc."
+                              />
+                            </div>
+                            <div className="tab-pane fade" id="preview" role="tabpanel">
+                              <div 
+                                className="border p-3 mt-2" 
+                                style={{ minHeight: '200px', backgroundColor: '#f8f9fa' }}
+                                dangerouslySetInnerHTML={{ __html: postForm.content || '<p class="text-muted">No hay contenido para mostrar</p>' }}
+                              />
+                            </div>
+                          </div>
+                          <small className="form-text text-muted">
+                            Puedes usar HTML básico: &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;
+                          </small>
+                        </div>
+                      </div>
+                      <div className="col-md-4">
+                        <div className="mb-3">
+                          <label className="form-label">Extracto</label>
+                          <textarea
+                            className="form-control"
+                            rows="3"
+                            value={postForm.excerpt}
+                            onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label">Tags (separados por comas)</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={postForm.tags.join(', ')}
+                            onChange={(e) => setPostForm({...postForm, tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)})}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label">Estado</label>
+                          <select
+                            className="form-select"
+                            value={postForm.status}
+                            onChange={(e) => setPostForm({...postForm, status: e.target.value})}
+                          >
+                            <option value="draft">Borrador</option>
+                            <option value="published">Publicado</option>
+                            <option value="archived">Archivado</option>
+                          </select>
+                        </div>
+                        <div className="form-check mb-3">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={postForm.featured}
+                            onChange={(e) => setPostForm({...postForm, featured: e.target.checked})}
+                          />
+                          <label className="form-check-label">Destacado</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2">
+                      <button type="submit" className="btn btn-primary">
+                        {editingPost ? 'Actualizar' : 'Crear'} Post
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={resetPostForm}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+            
             <div className="row">
               {posts.map((post) => (
-                <div key={post.id} className="col-md-6 col-lg-4 mb-4">
+                <div key={post._id} className="col-md-6 col-lg-4 mb-4">
                   <div className="card">
-                    <img src={post.image} className="card-img-top" alt={post.title} style={{ height: '200px', objectFit: 'cover' }} />
+                    <img 
+                      src={post.images?.[0]?.url || 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
+                      className="card-img-top" 
+                      alt={post.title} 
+                      style={{ height: '200px', objectFit: 'cover' }} 
+                    />
                     <div className="card-body">
-                      <h5 className="card-title">{post.title}</h5>
+                      <div className="d-flex justify-content-between align-items-start mb-2">
+                        <h5 className="card-title">{post.title}</h5>
+                        <div className="dropdown">
+                          <button className="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i className="fas fa-ellipsis-v"></i>
+                          </button>
+                          <ul className="dropdown-menu">
+                            <li><button className="dropdown-item" onClick={() => handleEditPost(post)}>
+                              <i className="fas fa-edit me-2"></i>Editar
+                            </button></li>
+                            <li><button className="dropdown-item text-danger" onClick={() => handleDeletePost(post._id)}>
+                              <i className="fas fa-trash me-2"></i>Eliminar
+                            </button></li>
+                          </ul>
+                        </div>
+                      </div>
                       <p className="card-text">{post.excerpt}</p>
-                      <div className="d-flex justify-content-between">
-                        <small className="text-muted">{post.author}</small>
-                        <small className="text-muted">{new Date(post.date).toLocaleDateString('es-ES')}</small>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <small className="text-muted">{post.author}</small>
+                          <br />
+                          <small className="text-muted">{new Date(post.publishedAt).toLocaleDateString('es-ES')}</small>
+                        </div>
+                        <div>
+                          <span className={`badge ${post.status === 'published' ? 'bg-success' : post.status === 'draft' ? 'bg-warning' : 'bg-secondary'}`}>
+                            {post.status === 'published' ? 'Publicado' : post.status === 'draft' ? 'Borrador' : 'Archivado'}
+                          </span>
+                          {post.featured && <span className="badge bg-warning ms-1">Destacado</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
