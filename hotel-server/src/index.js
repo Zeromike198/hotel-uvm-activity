@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 const { connectDatabase } = require('./config/database');
+const { seedAdmin } = require('./seeders/adminSeeder');
 const { 
   corsOptions, 
   helmetConfig, 
@@ -30,8 +31,10 @@ app.use(sanitizeInput);
 const reservationsRoutes = require('./routes/reservations');
 const weatherRoutes = require('./routes/weather');
 const postsRoutes = require('./routes/posts');
+const authRoutes = require('./routes/auth');
 
 // Rutas API con rate limiting específico
+app.use('/api/auth', authRoutes);
 app.use('/api/reservations', createLimiter, reservationsRoutes);
 app.use('/api/weather', weatherLimiter, weatherRoutes);
 app.use('/api/posts', postsRoutes);
@@ -42,6 +45,7 @@ app.get('/', (req, res) => {
     message: 'Hotel Server API funcionando correctamente',
     version: '1.0.0',
     endpoints: {
+      auth: '/api/auth',
       reservations: '/api/reservations',
       weather: '/api/weather',
       posts: '/api/posts'
@@ -75,11 +79,15 @@ const startServer = async () => {
     // Conectar a la base de datos
     await connectDatabase();
     
+    // Ejecutar seeder de admin
+    await seedAdmin();
+    
     // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
       console.log(`📧 Configuración SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
       console.log(`🌤️  API del clima: ${process.env.OPENWEATHER_API_KEY ? 'Configurada' : 'No configurada'}`);
+      console.log(`🔐 Sistema de autenticación: Configurado`);
       console.log(`🌐 API disponible en: http://localhost:${PORT}`);
     });
   } catch (error) {

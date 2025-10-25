@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { authService } from '../services/authService';
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -8,15 +9,42 @@ const Admin = () => {
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState('reservations');
   const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
 
-  // Autenticación simple
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (loginData.username === 'admin' && loginData.password === 'admin123') {
+  // Verificar autenticación al cargar el componente
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
       setIsAuthenticated(true);
+      setUser(authService.getCurrentUser());
       fetchData();
-    } else {
-      alert('Credenciales incorrectas');
+    }
+  }, []);
+
+  // Autenticación dinámica
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoginLoading(true);
+    setError('');
+
+    try {
+      const response = await authService.login(loginData);
+      
+      if (response.success) {
+        setIsAuthenticated(true);
+        setUser(response.data.user);
+        fetchData();
+      }
+    } catch (error) {
+      setError(error.message);
+      // Mantener el error visible por un momento
+      setTimeout(() => {
+        setError('');
+      }, 3000);
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -38,9 +66,12 @@ const Admin = () => {
   };
 
   const handleLogout = () => {
+    authService.logout();
     setIsAuthenticated(false);
+    setUser(null);
     setReservations([]);
     setPosts([]);
+    setLoginData({ username: '', password: '' });
   };
 
   if (!isAuthenticated) {
@@ -57,9 +88,16 @@ const Admin = () => {
                   </h4>
                 </div>
                 <div className="card-body p-4">
-                  <form onSubmit={handleLogin}>
+                  {error && (
+                    <div className="alert alert-danger" role="alert">
+                      <i className="fas fa-exclamation-triangle me-2"></i>
+                      {error}
+                    </div>
+                  )}
+                  
+                  <form>
                     <div className="mb-3">
-                      <label htmlFor="username" className="form-label">Usuario</label>
+                      <label htmlFor="username" className="form-label">Usuario o Email</label>
                       <input
                         type="text"
                         className="form-control"
@@ -67,6 +105,7 @@ const Admin = () => {
                         value={loginData.username}
                         onChange={(e) => setLoginData({...loginData, username: e.target.value})}
                         required
+                        disabled={loginLoading}
                       />
                     </div>
                     <div className="mb-4">
@@ -78,11 +117,26 @@ const Admin = () => {
                         value={loginData.password}
                         onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                         required
+                        disabled={loginLoading}
                       />
                     </div>
-                    <button type="submit" className="btn btn-primary w-100">
-                      <i className="fas fa-sign-in-alt me-2"></i>
-                      Iniciar Sesión
+                    <button 
+                      type="button" 
+                      className="btn btn-primary w-100"
+                      disabled={loginLoading}
+                      onClick={handleLogin}
+                    >
+                      {loginLoading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Iniciando sesión...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-sign-in-alt me-2"></i>
+                          Iniciar Sesión
+                        </>
+                      )}
                     </button>
                   </form>
                   <div className="mt-3 text-center">
@@ -110,6 +164,11 @@ const Admin = () => {
                 <i className="fas fa-tachometer-alt me-2"></i>
                 Panel de Administración - Hotel Paradise Mérida
               </h1>
+              {user && (
+                <small className="text-light">
+                  Bienvenido, {user.username} ({user.role})
+                </small>
+              )}
             </div>
             <div className="col-md-4 text-end">
               <button onClick={handleLogout} className="btn btn-outline-light">

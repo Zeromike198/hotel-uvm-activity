@@ -1,35 +1,35 @@
-/**
- * Middleware de autenticación básica con token simulado
- * En un entorno de producción, esto debería usar JWT o similar
- */
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-// Tokens simulados para desarrollo
-const SIMULATED_TOKENS = {
-  'admin-token-123': {
-    id: 'admin-001',
-    username: 'admin',
-    role: 'admin',
-    permissions: ['read', 'write', 'delete']
-  },
-  'editor-token-456': {
-    id: 'editor-001',
-    username: 'editor',
-    role: 'editor',
-    permissions: ['read', 'write']
-  },
-  'viewer-token-789': {
-    id: 'viewer-001',
-    username: 'viewer',
-    role: 'viewer',
-    permissions: ['read']
-  }
+// Clave secreta para JWT (en producción debe estar en variables de entorno)
+const JWT_SECRET = process.env.JWT_SECRET || 'hotel-secret-key-2024';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+
+/**
+ * Generar token JWT para un usuario
+ * @param {Object} user - Objeto usuario
+ * @returns {string} - Token JWT
+ */
+const generateToken = (user) => {
+  const payload = {
+    id: user._id,
+    username: user.username,
+    email: user.email,
+    role: user.role
+  };
+  
+  return jwt.sign(payload, JWT_SECRET, { 
+    expiresIn: JWT_EXPIRES_IN,
+    issuer: 'hotel-api',
+    audience: 'hotel-client'
+  });
 };
 
 /**
- * Middleware de autenticación básica
+ * Middleware de autenticación con JWT
  * Verifica el token en el header Authorization
  */
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -42,76 +42,56 @@ const authenticateToken = (req, res, next) => {
       });
     }
 
-    // Verificar token simulado
-    const user = SIMULATED_TOKENS[token];
+    // Verificar y decodificar token JWT
+    const decoded = jwt.verify(token, JWT_SECRET);
     
-    if (!user) {
+    // Buscar usuario en la base de datos
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (!user || !user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Token inválido o expirado',
-        error: 'INVALID_TOKEN'
+        message: 'Usuario no encontrado o inactivo',
+        error: 'USER_NOT_FOUND'
       });
     }
 
     // Agregar información del usuario a la request
-    req.user = user;
+    req.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      isActive: user.isActive
+    };
+    
     next();
 
   } catch (error) {
     console.error('Error en autenticación:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(403).json({
+        success: false,
+        message: 'Token inválido',
+        error: 'INVALID_TOKEN'
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(403).json({
+        success: false,
+        message: 'Token expirado',
+        error: 'TOKEN_EXPIRED'
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       message: 'Error interno de autenticación',
       error: error.message
     });
   }
-};
-
-/**
- * Middleware para verificar permisos específicos
- * @param {string|Array} requiredPermissions - Permisos requeridos
- */
-const requirePermissions = (requiredPermissions) => {
-  return (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Usuario no autenticado',
-          error: 'NOT_AUTHENTICATED'
-        });
-      }
-
-      const userPermissions = req.user.permissions || [];
-      const permissions = Array.isArray(requiredPermissions) 
-        ? requiredPermissions 
-        : [requiredPermissions];
-
-      const hasPermission = permissions.every(permission => 
-        userPermissions.includes(permission)
-      );
-
-      if (!hasPermission) {
-        return res.status(403).json({
-          success: false,
-          message: 'Permisos insuficientes',
-          error: 'INSUFFICIENT_PERMISSIONS',
-          required: permissions,
-          userPermissions: userPermissions
-        });
-      }
-
-      next();
-
-    } catch (error) {
-      console.error('Error en verificación de permisos:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error interno de autorización',
-        error: error.message
-      });
-    }
-  };
 };
 
 /**
@@ -161,13 +141,29 @@ const requireRole = (requiredRoles) => {
  * Middleware opcional de autenticación
  * No falla si no hay token, pero agrega usuario si existe
  */
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if (token && SIMULATED_TOKENS[token]) {
-      req.user = SIMULATED_TOKENS[token];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.id).select('-password');
+        
+        if (user && user.isActive) {
+          req.user = {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive
+          };
+        }
+      } catch (error) {
+        // Token inválido, continuar sin autenticación
+        console.log('Token inválido en autenticación opcional:', error.message);
+      }
     }
 
     next();
@@ -178,23 +174,9 @@ const optionalAuth = (req, res, next) => {
   }
 };
 
-/**
- * Función para generar token simulado (para desarrollo)
- * @param {string} username - Nombre de usuario
- * @param {string} role - Rol del usuario
- * @returns {string} - Token simulado
- */
-const generateSimulatedToken = (username, role = 'viewer') => {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2);
-  return `${role}-token-${timestamp}-${random}`;
-};
-
 module.exports = {
+  generateToken,
   authenticateToken,
-  requirePermissions,
   requireRole,
-  optionalAuth,
-  generateSimulatedToken,
-  SIMULATED_TOKENS
+  optionalAuth
 };
