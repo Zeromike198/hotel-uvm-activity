@@ -41,11 +41,15 @@ Frontend (hotel-landing)
 - Vite: http://localhost:5173
 - API base: http://localhost:3000/api (config en src/services/authService.js)
 - Admin: usuario sembrado admin/admin123 
+ - UI: Bootstrap 5 + FontAwesome
+ - Router: React Router con transiciones animadas (Framer Motion)
+ - Menú admin: dropdown alineado a la derecha (corrigido overflow)
 
 Reservas
 - Formulario en Home envía a /api/reservations
 - Se guardan en MongoDB y aparecen en Admin > Reservas
 - Si SMTP está configurado se envía email de confirmación
+ - Validaciones en cliente y servidor; sanitización de entrada
 
 Scripts
 - Backend: npm run dev, npm start
@@ -54,4 +58,5 @@ Scripts
 Notas
 - Slug de posts se genera automáticamente; avatar de autor por defecto.
 - Seeders crean admin y posts iniciales al arrancar si no existen.
+ - Clima vía OpenWeather (si OPENWEATHER_API_KEY está configurada)
 
