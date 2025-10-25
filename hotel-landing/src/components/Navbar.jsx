@@ -71,11 +71,11 @@ const Navbar = () => {
             {isAuthenticated ? (
               <>
                 <li className="nav-item dropdown">
-                  <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                  <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" data-bs-display="static">
                     <i className="fas fa-user me-1"></i>
                     {user?.username}
                   </a>
-                  <ul className="dropdown-menu">
+                  <ul className="dropdown-menu dropdown-menu-end dropdown-menu-lg-end" data-bs-popper="static">
                     <li><Link className="dropdown-item" to="/admin">
                       <i className="fas fa-cog me-2"></i>Panel Admin
                     </Link></li>
