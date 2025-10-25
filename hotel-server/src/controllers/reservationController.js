@@ -1,12 +1,9 @@
 const nodemailer = require('nodemailer');
-
-// Simulación de base de datos en memoria
-let reservations = [];
-let nextId = 1;
+const Reservation = require('../models/Reservation');
 
 // Configuración del transporter de nodemailer
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
     secure: process.env.SMTP_PORT == 465, // true para 465, false para otros puertos
@@ -142,26 +139,25 @@ const createReservation = async (req, res) => {
       });
     }
     
-    // Crear reserva
-    const reservation = {
-      id: nextId++,
+    // Crear y guardar reserva en MongoDB
+    const reservation = new Reservation({
       ...reservationData,
-      createdAt: new Date(),
       status: 'pending'
-    };
-    
-    // Guardar en "base de datos" simulada
-    reservations.push(reservation);
+    });
+    await reservation.save();
     
     // Enviar email de confirmación
-    const emailSent = await sendConfirmationEmail(reservation);
+    const emailSent = await sendConfirmationEmail({
+      id: reservation._id.toString(),
+      ...reservation.toObject()
+    });
     
     // Respuesta exitosa
     res.status(201).json({
       success: true,
       message: 'Reserva creada exitosamente',
       data: {
-        id: reservation.id,
+        id: reservation._id.toString(),
         name: reservation.name,
         email: reservation.email,
         checkIn: reservation.checkIn,
@@ -184,12 +180,22 @@ const createReservation = async (req, res) => {
 };
 
 // Controlador para obtener todas las reservas (para admin)
-const getAllReservations = (req, res) => {
+const getAllReservations = async (req, res) => {
   try {
-    res.json({
-      success: true,
-      data: reservations
-    });
+    const reservations = await Reservation.find().sort({ createdAt: -1 });
+    // mapear _id -> id para compatibilidad con frontend actual
+    const data = reservations.map(r => ({
+      id: r._id.toString(),
+      name: r.name,
+      email: r.email,
+      checkIn: r.checkIn,
+      checkOut: r.checkOut,
+      guests: r.guests,
+      roomType: r.roomType,
+      status: r.status,
+      createdAt: r.createdAt
+    }));
+    res.json({ success: true, data });
   } catch (error) {
     console.error('Error al obtener reservas:', error);
     res.status(500).json({
@@ -201,22 +207,14 @@ const getAllReservations = (req, res) => {
 };
 
 // Controlador para obtener reserva por ID
-const getReservationById = (req, res) => {
+const getReservationById = async (req, res) => {
   try {
     const { id } = req.params;
-    const reservation = reservations.find(r => r.id === parseInt(id));
-    
+    const reservation = await Reservation.findById(id);
     if (!reservation) {
-      return res.status(404).json({
-        success: false,
-        message: 'Reserva no encontrada'
-      });
+      return res.status(404).json({ success: false, message: 'Reserva no encontrada' });
     }
-    
-    res.json({
-      success: true,
-      data: reservation
-    });
+    res.json({ success: true, data: reservation });
   } catch (error) {
     console.error('Error al obtener reserva:', error);
     res.status(500).json({

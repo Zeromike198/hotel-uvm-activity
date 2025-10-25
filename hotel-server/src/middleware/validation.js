@@ -44,8 +44,15 @@ const validateReservation = [
     .trim()
     .notEmpty()
     .withMessage('El teléfono es requerido')
-    .matches(/^[\+]?[1-9][\d]{0,15}$/)
-    .withMessage('El teléfono debe ser válido'),
+    .customSanitizer((value) => {
+      // Mantener dígitos y un posible + inicial
+      if (typeof value !== 'string') return value;
+      const cleaned = value.replace(/[^\d+]/g, '');
+      // Asegurar que solo el primer carácter pueda ser +
+      return cleaned.replace(/(?!^)[+]/g, '');
+    })
+    .matches(/^\+?\d{7,15}$/)
+    .withMessage('El teléfono debe contener entre 7 y 15 dígitos'),
   
   body('checkIn')
     .isISO8601()
