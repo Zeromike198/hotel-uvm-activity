@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
  */
 const connectDatabase = async () => {
   try {
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hotel-db';
+    const MONGODB_URI = process.env.MONGODB_URI;
     
     const options = {
       maxPoolSize: 10, // Mantener hasta 10 conexiones
