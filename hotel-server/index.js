@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 require('dotenv').config();
+const { connectDatabase } = require('./src/config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,10 +15,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Importar rutas
 const reservationsRoutes = require('./src/routes/reservations');
 const weatherRoutes = require('./src/routes/weather');
+const postsRoutes = require('./src/routes/posts');
 
 // Rutas API
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/posts', postsRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -26,7 +29,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       reservations: '/api/reservations',
-      weather: '/api/weather'
+      weather: '/api/weather',
+      posts: '/api/posts'
     }
   });
 });
@@ -50,11 +54,24 @@ app.use('*', (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
-  console.log(`📧 Configuración SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
-  console.log(`🌤️  API del clima: ${process.env.OPENWEATHER_API_KEY ? 'Configurada' : 'No configurada'}`);
-  console.log(`🌐 API disponible en: http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    // Conectar a la base de datos
+    await connectDatabase();
+    
+    // Iniciar servidor
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+      console.log(`📧 Configuración SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}`);
+      console.log(`🌤️  API del clima: ${process.env.OPENWEATHER_API_KEY ? 'Configurada' : 'No configurada'}`);
+      console.log(`🌐 API disponible en: http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Error al iniciar servidor:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 module.exports = app;
