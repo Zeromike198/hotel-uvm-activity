@@ -19,12 +19,12 @@ const postSchema = new mongoose.Schema({
   content: {
     type: String,
     required: [true, 'El contenido es requerido'],
-    minlength: [50, 'El contenido debe tener al menos 50 caracteres']
+    minlength: [10, 'El contenido debe tener al menos 10 caracteres']
   },
   images: [{
     url: {
       type: String,
-      required: true
+      required: false
     },
     alt: {
       type: String,
@@ -90,23 +90,38 @@ postSchema.virtual('readingTime').get(function() {
   return Math.ceil(wordCount / wordsPerMinute);
 });
 
-// Middleware pre-save para generar slug automáticamente si no se proporciona
-postSchema.pre('save', function(next) {
-  if (this.isModified('title') && !this.slug && this.title) {
-    this.slug = this.title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '') // Remover caracteres especiales
-      .replace(/\s+/g, '-') // Reemplazar espacios con guiones
-      .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
-      .trim('-'); // Remover guiones del inicio y final
+// Middleware pre-validate para generar slug antes de la validación
+postSchema.pre('validate', async function(next) {
+  try {
+    if (this.isModified('title') && !this.slug && this.title) {
+      let baseSlug = this.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remover caracteres especiales
+        .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+        .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
+        .trim('-'); // Remover guiones del inicio y final
+      
+      // Verificar si el slug ya existe y agregar un número si es necesario
+      let slug = baseSlug;
+      let counter = 1;
+      
+      while (await this.constructor.findOne({ slug: slug, _id: { $ne: this._id } })) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+      
+      this.slug = slug;
+    }
+    
+    // Generar excerpt automáticamente si no se proporciona
+    if (!this.excerpt && this.content) {
+      this.excerpt = this.content.substring(0, 200).replace(/<[^>]*>/g, '') + '...';
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
   }
-  
-  // Generar excerpt automáticamente si no se proporciona
-  if (!this.excerpt && this.content) {
-    this.excerpt = this.content.substring(0, 200).replace(/<[^>]*>/g, '') + '...';
-  }
-  
-  next();
 });
 
 // Método estático para buscar posts por slug

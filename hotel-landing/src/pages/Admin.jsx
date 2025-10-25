@@ -21,7 +21,8 @@ const Admin = () => {
     excerpt: '',
     tags: [],
     status: 'draft',
-    featured: false
+    featured: false,
+    images: []
   });
 
   // Verificar autenticación al cargar el componente
@@ -89,7 +90,28 @@ const Admin = () => {
   const handleCreatePost = async (e) => {
     e.preventDefault();
     try {
+      // Verificar autenticación
+      if (!authService.isAuthenticated()) {
+        setError('Debes estar autenticado para crear posts');
+        return;
+      }
+
+      // Validar datos del formulario
+      if (!postForm.title.trim()) {
+        setError('El título es requerido');
+        return;
+      }
+
+      if (!postForm.content.trim() || postForm.content.length < 10) {
+        setError('El contenido debe tener al menos 10 caracteres');
+        return;
+      }
+
+      console.log('📝 Enviando datos del formulario:', postForm);
+      console.log('🔑 Token disponible:', !!authService.getToken());
+      
       const response = await postService.createPost(postForm);
+      console.log('✅ Respuesta del servidor:', response);
       setPosts([response.data, ...posts]);
       setShowPostForm(false);
       setPostForm({
@@ -98,10 +120,11 @@ const Admin = () => {
         excerpt: '',
         tags: [],
         status: 'draft',
-        featured: false
+        featured: false,
+        images: []
       });
     } catch (error) {
-      console.error('Error al crear post:', error);
+      console.error('❌ Error al crear post:', error);
       setError(error.message);
     }
   };
@@ -114,7 +137,8 @@ const Admin = () => {
       excerpt: post.excerpt,
       tags: post.tags || [],
       status: post.status,
-      featured: post.featured
+      featured: post.featured,
+      images: post.images || []
     });
     setShowPostForm(true);
   };
@@ -132,7 +156,8 @@ const Admin = () => {
         excerpt: '',
         tags: [],
         status: 'draft',
-        featured: false
+        featured: false,
+        images: []
       });
     } catch (error) {
       console.error('Error al actualizar post:', error);
@@ -415,9 +440,15 @@ const Admin = () => {
                                 value={postForm.content}
                                 onChange={(e) => setPostForm({...postForm, content: e.target.value})}
                                 required
+                                minLength="10"
                                 style={{ fontFamily: 'monospace' }}
                                 placeholder="Puedes usar HTML básico como &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, etc."
                               />
+                              <div className="form-text">
+                                <small className={postForm.content.length < 10 ? 'text-danger' : 'text-muted'}>
+                                  {postForm.content.length}/10 caracteres mínimo
+                                </small>
+                              </div>
                             </div>
                             <div className="tab-pane fade" id="preview" role="tabpanel">
                               <div 
@@ -472,6 +503,66 @@ const Admin = () => {
                           />
                           <label className="form-check-label">Destacado</label>
                         </div>
+                        <div className="mb-3">
+                          <label className="form-label">Imagen Principal (URL)</label>
+                          <input
+                            type="url"
+                            className="form-control"
+                            value={postForm.images[0]?.url || ''}
+                            onChange={(e) => {
+                              const newImages = [...postForm.images];
+                              if (newImages.length === 0) {
+                                newImages.push({ url: e.target.value, alt: '', caption: '' });
+                              } else {
+                                newImages[0] = { ...newImages[0], url: e.target.value };
+                              }
+                              setPostForm({...postForm, images: newImages});
+                            }}
+                            placeholder="https://ejemplo.com/imagen.jpg"
+                          />
+                          <small className="form-text text-muted">
+                            URL de la imagen principal del artículo
+                          </small>
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label">Texto Alternativo de la Imagen</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={postForm.images[0]?.alt || ''}
+                            onChange={(e) => {
+                              const newImages = [...postForm.images];
+                              if (newImages.length === 0) {
+                                newImages.push({ url: '', alt: e.target.value, caption: '' });
+                              } else {
+                                newImages[0] = { ...newImages[0], alt: e.target.value };
+                              }
+                              setPostForm({...postForm, images: newImages});
+                            }}
+                            placeholder="Descripción de la imagen"
+                          />
+                        </div>
+                        {postForm.images[0]?.url && (
+                          <div className="mb-3">
+                            <label className="form-label">Vista Previa de la Imagen</label>
+                            <div className="border rounded p-2" style={{ maxWidth: '200px' }}>
+                              <img 
+                                src={postForm.images[0].url} 
+                                alt={postForm.images[0].alt || 'Vista previa'}
+                                className="img-fluid rounded"
+                                style={{ maxHeight: '150px', objectFit: 'cover' }}
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'block';
+                                }}
+                              />
+                              <div style={{ display: 'none' }} className="text-muted text-center">
+                                <i className="fas fa-image fa-2x"></i>
+                                <p>Imagen no disponible</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="d-flex gap-2">

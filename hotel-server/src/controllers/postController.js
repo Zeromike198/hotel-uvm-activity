@@ -131,13 +131,24 @@ const getPostBySlug = async (req, res) => {
 const createPost = async (req, res) => {
   try {
     const postData = req.body;
+    console.log('📝 Datos recibidos para crear post:', postData);
 
     // Validar datos requeridos
     if (!postData.title || !postData.content) {
+      console.log('❌ Faltan datos requeridos:', { title: !!postData.title, content: !!postData.content });
       return res.status(400).json({
         success: false,
         message: 'Título y contenido son requeridos'
       });
+    }
+
+    // Agregar imagen por defecto si no se proporciona ninguna
+    if (!postData.images || postData.images.length === 0) {
+      postData.images = [{
+        url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        alt: postData.title || 'Imagen del artículo',
+        caption: ''
+      }];
     }
 
     // Crear nuevo post
@@ -146,7 +157,18 @@ const createPost = async (req, res) => {
       author: postData.author || req.user?.username || 'Admin'
     });
 
+    console.log('💾 Guardando post:', { title: post.title, slug: post.slug, author: post.author });
+    console.log('📄 Datos completos del post:', {
+      title: post.title,
+      content: post.content ? 'Presente' : 'Faltante',
+      slug: post.slug,
+      author: post.author,
+      status: post.status,
+      tags: post.tags
+    });
+    
     await post.save();
+    console.log('✅ Post guardado exitosamente:', post._id);
 
     res.status(201).json({
       success: true,
@@ -155,12 +177,29 @@ const createPost = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al crear post:', error);
+    console.error('❌ Error al crear post:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'El slug ya existe'
+        message: 'El slug ya existe',
+        error: 'DUPLICATE_SLUG'
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      console.log('❌ Errores de validación:', error.errors);
+      return res.status(400).json({
+        success: false,
+        message: 'Error de validación',
+        error: 'VALIDATION_ERROR',
+        details: error.errors
       });
     }
 
